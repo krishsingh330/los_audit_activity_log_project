@@ -46,7 +46,6 @@ def root():
         "message": "Loan Management System with Automatic Audit",
     }
 
-
 @app.get("/health")
 def health_check():
     """

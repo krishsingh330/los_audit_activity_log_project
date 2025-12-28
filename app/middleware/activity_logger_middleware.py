@@ -33,6 +33,8 @@ def get_action_from_method(method: str) -> str:
     return "UNKNOWN"
 
 
+from app.constants.excluded_routes import EXCLUDED_PREFIXES
+
 class ActivityLoggerMiddleware(BaseHTTPMiddleware):
     """
     Middleware to log all HTTP requests and responses for activity tracking.
@@ -51,9 +53,12 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
         db: Session = Session(engine)
         request.state.db = db 
         
-        # SKIP LOGGING for /activity-logs endpoints to prevent recursion
-        if "/activity-logs" in request.url.path:
-            return await call_next(request)
+        # SKIP LOGGING for configured routes to prevent recursion or spam
+        # Checks if any excluded prefix is present in the request URL path AND if the method matches
+        for prefix, methods in EXCLUDED_PREFIXES.items():
+            if prefix in request.url.path:
+                if "*" in methods or request.method in methods:
+                    return await call_next(request)
 
         status = "SUCCESS"
         body_bytes = await request.body()

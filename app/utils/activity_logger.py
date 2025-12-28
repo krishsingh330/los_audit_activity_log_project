@@ -28,7 +28,7 @@ def create_log_activity(
         status_code (int): HTTP status.
         extra_data (dict): Additional context (encrypted).
     """
-    print(f"Logging activity: {action} on {request.url.path}")
+
 
     activity = ActivityLog(
         user_id=getattr(request.state, "user_id", None),
@@ -46,4 +46,4 @@ def create_log_activity(
     db.add(activity)
     db.commit()
 
-    print(f"Activity logged: {action} by user {activity.user_id}")
+   

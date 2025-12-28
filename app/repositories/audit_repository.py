@@ -31,7 +31,6 @@ class AuditRepository:
         Returns:
             list[AuditLog]: A list of matching audit log entries.
         """
-
         # Initialize base query on AuditLog table
         # At this stage, query represents:
         # SELECT * FROM audit_logs

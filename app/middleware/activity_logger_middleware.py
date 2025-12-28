@@ -49,8 +49,13 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
         Intercepts requests to log activity and handle transitions.
         """
         db: Session = Session(engine)
-        status = "SUCCESS"
         request.state.db = db 
+        
+        # SKIP LOGGING for /activity-logs endpoints to prevent recursion
+        if "/activity-logs" in request.url.path:
+            return await call_next(request)
+
+        status = "SUCCESS"
         body_bytes = await request.body()
         request_body = None
 
@@ -87,12 +92,6 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
                 response_body = json.loads(response_body_bytes)
             except Exception:
                 response_body = response_body_bytes.decode(errors="ignore")
-
-            # print response log
-            logger.info(
-                f"RESPONSE | {request.method} {request.url.path} | "
-                f"STATUS = {response.status_code} | BODY = {response_body}"
-            )
 
             if response.status_code >= 400:
                 status = "FAILED"
@@ -152,3 +151,4 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
                 db.close()
 
         return response
+

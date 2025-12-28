@@ -5,6 +5,7 @@ from app.dependencies import get_db
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
 
+
 @router.get("/")
 def get_audit_logs(
     table_name: str = None,

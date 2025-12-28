@@ -13,11 +13,11 @@ settings = get_settings()
 SECURE_KEYS = {field.value for field in SecureFields}
 
 
-# 🔐 Load encryption key from ENV (MANDATORY)
+# Load encryption key from ENV (MANDATORY)
 SECRET_KEY = settings.ENUM_ENCRYPTION_KEY
 
 
-# 🚨 Hard fail if key missing (THIS IS GOOD)
+# Hard fail if key missing (THIS IS GOOD)
 if not SECRET_KEY:
     raise RuntimeError(
         "ENUM_ENCRYPTION_KEY is missing. "
@@ -29,7 +29,7 @@ if not SECRET_KEY:
 fernet = Fernet(SECRET_KEY.encode())
 
 
-# -------------------- CORE FUNCTIONS --------------------
+# CORE FUNCTIONS
 
 def encrypt_value(value: Any):
     """

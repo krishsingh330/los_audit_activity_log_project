@@ -3,6 +3,7 @@ from sqlmodel import Session
 
 from app.services.activity_service import ActivityService
 from app.dependencies import get_db
+from app.core.logger import logger
 
 router = APIRouter(prefix="/activity-logs", tags=["Activity Logs"])
 
@@ -29,6 +30,7 @@ def get_activity_logs(
     Returns:
         list[ActivityLog]: List of system activity logs matching criteria.
     """
+    
     return ActivityService.get_activity_logs(
         db,
         user_id=user_id,

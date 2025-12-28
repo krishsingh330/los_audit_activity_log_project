@@ -39,7 +39,7 @@ class ActivityRepository:
         if entity_id:
             statement = statement.where(ActivityLog.entity_id == entity_id)
         if action:
-            statement = statement.where(ActivityLog.action == action)
+            statement = statement.where(ActivityLog.action == action.upper())
 
         statement = statement.limit(limit)
         

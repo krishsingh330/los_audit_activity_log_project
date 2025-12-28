@@ -18,7 +18,7 @@ class ActivityService:
     ):
         """
         Retrieves activity logs from the repository with filters.
-        
+    
         Args:
             session (Session): Database session.
             user_id (int, optional): Filter by user ID.

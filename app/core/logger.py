@@ -18,7 +18,7 @@ def setup_logger():
 
     os.makedirs("logs", exist_ok=True)
 
-    # INFO & WARNING logs (normal)
+    # INFO & WARNING logs
     logger.add(
         "logs/app_{time:YYYY-MM-DD}.log",
         rotation="00:00",
@@ -30,7 +30,7 @@ def setup_logger():
         format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
     )
     
-    # ERROR ONLY (SHORT & CLEAN)
+    # ERROR ONLY 
     logger.add(
         "logs/error_{time:YYYY-MM-DD}.log",
         rotation="00:00",

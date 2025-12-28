@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 
-# ---------- AUTH ----------
+# AUTH
 class UserRegisterSchema(BaseModel):
     """
     Schema for user registration.
@@ -29,7 +29,7 @@ class UserLoginSchema(BaseModel):
     password: str
 
 
-# ---------- LOAN ----------
+# LOAN
 class LoanCreateSchema(BaseModel):
     """
     Schema for creating a new loan application.
@@ -63,7 +63,7 @@ class LoanUpdateSchema(BaseModel):
     tenure_months: Optional[int] = Field(None, gt=0)
 
 
-# ---------- PAYMENT ----------
+# PAYMENT
 class PaymentCreate(BaseModel):
     """
     Schema for recording a new payment.

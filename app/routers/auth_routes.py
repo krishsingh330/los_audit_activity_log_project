@@ -6,12 +6,6 @@ from app.schemas.schemas import UserRegisterSchema, UserLoginSchema
 from app.dependencies import get_db
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-
-# def get_db(request: Request) -> Session:
-#     """Dependency: Extract database session from request state."""
-#     return request.state.db
-
-
 @router.post("/register")
 def register_user(
     data: UserRegisterSchema,

@@ -1,33 +1,42 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from app.repositories.loan_repository import LoanRepository
+from app.core.logger import logger
 
 
-def fetch_all_loans(db: Session):
+async def fetch_all_loans(session: AsyncSession):
     """
     Service layer wrapper for fetching all loans.
     """
+    try:
+        return await LoanRepository.get_all_loans(session)
+    except Exception as e:
+        logger.error(f"Error fetching loans: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    return LoanRepository.get_all_loans(db)
 
-
-def fetch_loan_by_id(db: Session, loan_id: int):
+async def fetch_loan_by_id( session: AsyncSession, loan_id: int):
     """
     Fetch a loan by ID, validating its existence.
     
     Raises:
         HTTPException: 404 if loan not found.
     """
+    try:
+        loan = await LoanRepository.get_loan_by_id(session, loan_id)
 
-    loan = LoanRepository.get_loan_by_id(db, loan_id)
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found")
 
-    if not loan:
-        raise HTTPException(status_code=404, detail="Loan not found")
+        return loan
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error fetching loan {loan_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    return loan
 
-
-def create_loan(db: Session, user_id: int, payload):
+async def create_loan(session: AsyncSession, user_id: int, payload):
     """
     Business logic for creating a loan.
     
@@ -35,34 +44,39 @@ def create_loan(db: Session, user_id: int, payload):
     - user_id is provided and corresponds to a valid user.
     
     Args:
-        db (Session): Database session.
+        db (AsyncSession): Database session.
         user_id (int): ID of the creating user.
         payload (LoanCreateSchema): Loan application data.
         
     Returns:
         Loan: The created loan.
     """
+    try:
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id required")
 
-    if not user_id:
-        raise HTTPException(status_code=400, detail="user_id required")
+        user = await LoanRepository.get_user_by_id(session, user_id)
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid employee")
 
-    user = LoanRepository.get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid employee")
+        loan_data = {
+            "customer_name": payload.customer_name,
+            "loan_amount": payload.loan_amount,
+            "tenure_months": payload.tenure_months,
+            "interest_rate": payload.interest_rate,
+            "created_by": user_id
+        }
 
-    loan_data = {
-        "customer_name": payload.customer_name,
-        "loan_amount": payload.loan_amount,
-        "tenure_months": payload.tenure_months,
-        "interest_rate": payload.interest_rate,
-        "created_by": user_id
-    }
-
-    loan = LoanRepository.create_loan(db, loan_data)
-    return loan
+        loan = await LoanRepository.create_loan(session, loan_data)
+        return loan
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error creating loan: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-def update_loan(db: Session, loan_id: int, user_id: int, payload):
+async def update_loan(session: AsyncSession, loan_id: int, user_id: int, payload):
     """
     Business logic for updating a loan.
     
@@ -71,7 +85,7 @@ def update_loan(db: Session, loan_id: int, user_id: int, payload):
     - loan exists.
     
     Args:
-        db (Session): Database session.
+        db (AsyncSession): Database session.
         loan_id (int): ID of the loan to update.
         user_id (int): ID of the user performing update.
         payload (LoanUpdateSchema): Fields to update.
@@ -79,30 +93,40 @@ def update_loan(db: Session, loan_id: int, user_id: int, payload):
     Returns:
         Loan: The updated loan.
     """
+    try:
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id required")
 
-    if not user_id:
-        raise HTTPException(status_code=400, detail="user_id required")
+        loan = await LoanRepository.get_loan_by_id(session, loan_id)
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found")
 
-    loan = LoanRepository.get_loan_by_id(db, loan_id)
-    if not loan:
-        raise HTTPException(status_code=404, detail="Loan not found")
+        update_data = payload.dict(exclude_unset=True)
 
-    update_data = payload.dict(exclude_unset=True)
+        loan = await LoanRepository.update_loan(session, loan, update_data)
+        return loan
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error updating loan {loan_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    loan = LoanRepository.update_loan(db, loan, update_data)
-    return loan
 
-
-def delete_loan(db: Session, loan_id: int, user_id: int):
+async def delete_loan(session: AsyncSession, loan_id: int, user_id: int):
     """
     Business logic for deleting a loan.
     """
+    try:
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id required")
 
-    if not user_id:
-        raise HTTPException(status_code=400, detail="user_id required")
+        loan = await LoanRepository.get_loan_by_id(session, loan_id)
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found")
 
-    loan = LoanRepository.get_loan_by_id(db, loan_id)
-    if not loan:
-        raise HTTPException(status_code=404, detail="Loan not found")
-
-    LoanRepository.delete_loan(db, loan)
+        await LoanRepository.delete_loan(session, loan)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error deleting loan {loan_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")

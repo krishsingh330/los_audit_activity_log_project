@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import select
 from app.models import Loan
 from app.models import User
 
@@ -9,101 +10,123 @@ class LoanRepository:
     """
 
     @staticmethod
-    def get_all_loans(db: Session):
+    async def get_all_loans(session: AsyncSession):
         """
         Repository function to fetch all loan records.
         No filters, no validation, no business rules.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             
         Returns:
             list[Loan]: List of all loans.
         """
-        loans = db.query(Loan).all()
-        return loans
+        try:
+            statement = select(Loan)
+            result = await session.exec(statement)
+            return result.all()
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def get_loan_by_id(db: Session, loan_id: int):
+    async def get_loan_by_id(session: AsyncSession, loan_id: int):
         """
         Fetch a single loan by primary key.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             loan_id (int): The ID of the loan to fetch.
             
         Returns:
             Loan | None: The loan object if found, else None.
         """
-        loan = db.query(Loan).filter(Loan.id == loan_id).first()
-        return loan
+        try:
+            statement = select(Loan).where(Loan.id == loan_id)
+            result = await session.exec(statement)
+            return result.first()
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def get_user_by_id(db: Session, user_id: int):
+    async def get_user_by_id(session: AsyncSession, user_id: int):
         """
         Fetch user/employee who performs the action.
         Used to validate created_by / updated_by.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             user_id (int): The ID of the user.
             
         Returns:
             User | None: The user object if found, else None.
         """
-        user = db.query(User).filter(User.id == user_id).first()
-        return user
+        try:
+            statement = select(User).where(User.id == user_id)
+            result = await session.exec(statement)
+            return result.first()
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def create_loan(db: Session, loan_data: dict):
+    async def create_loan(session: AsyncSession, loan_data: dict):
         """
         Create and persist a new loan record.
         Assumes data is already validated by service layer.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             loan_data (dict): Dictionary containing valid loan data.
             
         Returns:
             Loan: The created loan object.
         """
-        loan = Loan(**loan_data)
+        try:
+            loan = Loan(**loan_data)
 
-        db.add(loan)
-        db.commit()
-        db.refresh(loan)
+            session.add(loan)
+            await session.commit()
+            await session.refresh(loan)
 
-        return loan
+            return loan
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def update_loan(db: Session, loan: Loan, update_data: dict):
+    async def update_loan(session: AsyncSession, loan: Loan, update_data: dict):
         """
         Update existing loan object with new values.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             loan (Loan): The existing loan object to update.
             update_data (dict): Dictionary of fields to update.
             
         Returns:
             Loan: The updated loan object.
         """
-        for key, value in update_data.items():
-            setattr(loan, key, value)
+        try:
+            for key, value in update_data.items():
+                setattr(loan, key, value)
 
-        db.commit()
-        db.refresh(loan)
+            session.add(loan)
+            await session.commit()
+            await session.refresh(loan)
 
-        return loan
+            return loan
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def delete_loan(db: Session, loan: Loan):
+    async def delete_loan(session: AsyncSession, loan: Loan):
         """
         Delete loan record from database.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             loan (Loan): The loan object to delete.
         """
-        db.delete(loan)
-        db.commit()
+        try:
+            await session.delete(loan)
+            await session.commit()
+        except Exception as e:
+            raise e

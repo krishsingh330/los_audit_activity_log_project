@@ -15,9 +15,11 @@ app = FastAPI(
 )
 
 # Initialize Database
-# This command ensures that all tables defined in SQLModel models are created
-# in the database if they do not already exist.
-SQLModel.metadata.create_all(engine)
+# We use an async startup event to create tables
+@app.on_event("startup")
+async def on_startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 # Initialize Application Logging
 # Sets up Loguru logger for console and file output

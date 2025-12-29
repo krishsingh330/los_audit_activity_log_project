@@ -1,4 +1,5 @@
-from sqlmodel import Session, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import select
 from app.models import ActivityLog
 
 
@@ -8,8 +9,8 @@ class ActivityRepository:
     """
 
     @staticmethod
-    def get_all(
-        session: Session,
+    async def get_all(
+        session: AsyncSession,
         user_id: int = None,
         entity: str = None,
         entity_id: int = None,
@@ -18,29 +19,23 @@ class ActivityRepository:
     ):
         """
         Retrieves activity logs from the database with optional filters.
-        
-        Args:
-            session (Session): The database session.
-            user_id (int, optional): Filter by user ID.
-            entity (str, optional): Filter by entity name.
-            entity_id (int, optional): Filter by entity ID.
-            action (str, optional): Filter by action type.
-            limit (int): Max records to return.
-            
-        Returns:
-            list[ActivityLog]: A list of filtered activity logs.
         """
-        statement = select(ActivityLog)
+        try:
+            statement = select(ActivityLog)
 
-        if user_id:
-            statement = statement.where(ActivityLog.user_id == user_id)
-        if entity:
-            statement = statement.where(ActivityLog.entity == entity)
-        if entity_id:
-            statement = statement.where(ActivityLog.entity_id == entity_id)
-        if action:
-            statement = statement.where(ActivityLog.action == action.upper())
+            if user_id:
+                statement = statement.where(ActivityLog.user_id == user_id)
+            if entity:
+                statement = statement.where(ActivityLog.entity == entity)
+            if entity_id:
+                statement = statement.where(ActivityLog.entity_id == entity_id)
+            if action:
+                statement = statement.where(ActivityLog.action == action.upper())
 
-        statement = statement.limit(limit)
-        
-        return session.exec(statement).all()
+            statement = statement.limit(limit)
+
+            result = await session.exec(statement)
+            return result.all()
+
+        except Exception as e:
+            raise e

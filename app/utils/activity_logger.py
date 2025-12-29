@@ -1,12 +1,12 @@
 from fastapi import Request
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Optional, Dict, Any
 
 from app.models.activity import ActivityLog
 
 
-def create_log_activity(
-    db: Session,
+async def create_log_activity(
+    db: AsyncSession,
     request: Request,
     action: str,
     entity: Optional[str] = None,
@@ -19,7 +19,7 @@ def create_log_activity(
     Creates and persists a new ActivityLog entry.
     
     Args:
-        db (Session): Database session.
+        db (AsyncSession): Async Database session.
         request (Request): HTTP request object.
         action (str): Action performed (CREATE, UPDATE, etc.).
         entity (str, optional): Entity affected.
@@ -44,6 +44,7 @@ def create_log_activity(
     )
 
     db.add(activity)
-    db.commit()
+    await db.commit()
+    await db.refresh(activity)
 
    

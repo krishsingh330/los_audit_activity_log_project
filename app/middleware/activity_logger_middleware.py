@@ -1,7 +1,8 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from app.database import engine
 from app.utils.activity_logger import create_log_activity
@@ -50,110 +51,117 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
         """
         Intercepts requests to log activity and handle transitions.
         """
-        db: Session = Session(engine)
-        request.state.db = db 
+        # Create AsyncSession
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         
-        # SKIP LOGGING for configured routes to prevent recursion or spam
-        # Checks if any excluded prefix is present in the request URL path AND if the method matches
-        for prefix, methods in EXCLUDED_PREFIXES.items():
-            if prefix in request.url.path:
-                if "*" in methods or request.method in methods:
-                    return await call_next(request)
+        async with async_session() as db:
+            request.state.db = db 
+            
+            # SKIP LOGGING for configured routes to prevent recursion or spam
+            # Checks if any excluded prefix is present in the request URL path AND if the method matches
+            for prefix, methods in EXCLUDED_PREFIXES.items():
+                if prefix in request.url.path:
+                    if "*" in methods or request.method in methods:
+                        return await call_next(request)
 
-        status = "SUCCESS"
-        body_bytes = await request.body()
-        request_body = None
+            status = "SUCCESS"
+            body_bytes = await request.body()
+            request_body = None
 
-        if body_bytes:
-            try:
-                request_body = json.loads(body_bytes)
-            except Exception:
-                request_body = body_bytes.decode(errors="ignore")
+            if body_bytes:
+                try:
+                    request_body = json.loads(body_bytes)
+                except Exception:
+                    request_body = body_bytes.decode(errors="ignore")
 
-        # print request log
-        logger.info(
-            f"REQUEST | {request.method} {request.url.path} | BODY = {request_body}"
-        )
-
-        # set user_id for audit
-        user_id = request.query_params.get("user_id")
-        if user_id:
-            try:
-                # Attach user_id to DB session info for AuditLog triggers
-                # [MERGE INSTRUCTION]: When merging with Auth system, replace the line below with:
-                # user_id = request.state.user.id  (or equivalent token-based retrieval)
-                db.info["user_id"] = int(user_id)
-            except ValueError:
-                pass
-
-        try:
-            response = await call_next(request)
-
-            response_body_bytes = b""
-            async for chunk in response.body_iterator:
-                response_body_bytes += chunk
-
-            try:
-                response_body = json.loads(response_body_bytes)
-            except Exception:
-                response_body = response_body_bytes.decode(errors="ignore")
-
-            if response.status_code >= 400:
-                status = "FAILED"
-
-            response = Response(
-                content=response_body_bytes,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=response.media_type,
+            # print request log
+            logger.info(
+                f"REQUEST | {request.method} {request.url.path} | BODY = {request_body}"
             )
 
-        except Exception as exc:
-            status = "FAILED"
-            logger.error(
-                f"ERROR | {request.method} {request.url.path} | {str(exc)}"
-            )
-            raise exc
+            # set user_id for audit
+            user_id = request.query_params.get("user_id")
+            if user_id:
+                try:
+                    # Attach user_id to DB session info for AuditLog triggers
+                    # [MERGE INSTRUCTION]: When merging with Auth system, replace the line below with:
+                    # user_id = request.state.user.id  (or equivalent token-based retrieval)
+                    db.info["user_id"] = int(user_id)
+                except ValueError:
+                    pass
 
-        finally:
             try:
-                # Extract entity name and ID from URL path
-                # Expects structure like /api/v1/{entity}/{id}
-                path_parts = request.url.path.strip("/").split("/")
-                entity = path_parts[2] if len(path_parts) > 2 else None
-                entity_id = None
-                if len(path_parts) > 3 and path_parts[3].isdigit():
-                    entity_id = int(path_parts[3])
-                elif len(path_parts) > 1 and path_parts[1].isdigit():
-                     # Fallback logic depending on route structure
-                    entity_id = int(path_parts[1])
+                response = await call_next(request)
+                response_body_bytes = b""
+                async for chunk in response.body_iterator:
+                    response_body_bytes += chunk
 
-                metadata = {
-                    "method": request.method,
-                    "path": request.url.path,
-                    "status_code": response.status_code,
-                    "request_body": encrypt_secure_fields(request_body),
-                    "response_body": encrypt_secure_fields(response_body),
-                    "query_params": dict(request.query_params),
-                    "headers": dict(request.headers),
-                }
 
-                create_log_activity(
-                    db=db,
-                    request=request,
-                    action=get_action_from_method(request.method),
-                    entity=entity,
-                    entity_id=entity_id,
-                    status=status,
+                try:
+                    response_body = json.loads(response_body_bytes)
+                    
+                    # If response has an ID (e.g. created resource), back-populate it to request_body for logging context
+                    if isinstance(response_body, dict) and "id" in response_body:
+                        if not isinstance(request_body, dict):
+                            request_body = {}
+                        request_body["id"] = response_body["id"]
+                except Exception:
+                    response_body = response_body_bytes.decode(errors="ignore")
+
+                if response.status_code >= 400:
+                    status = "FAILED"
+
+                response = Response(
+                    content=response_body_bytes,
                     status_code=response.status_code,
-                    extra_data=metadata,
+                    headers=dict(response.headers),
+                    media_type=response.media_type,
                 )
 
-            except Exception as log_error:
-                logger.error(f"Activity log failed: {log_error}")
-
+            except Exception as exc:
+                status = "FAILED"
+                logger.error(
+                    f"ERROR | {request.method} {request.url.path} | {str(exc)}"
+                )
+                raise exc
+            
             finally:
-                db.close()
+                try:
+                    # Extract entity name and ID from URL path
+                    # Expects structure like /api/v1/{entity}/{id}
+                    path_parts = request.url.path.strip("/").split("/")
+                    entity = path_parts[2] if len(path_parts) > 2 else None
+                    entity_id = None
+                    if len(path_parts) > 3 and path_parts[3].isdigit():
+                        entity_id = int(path_parts[3])
+                    elif len(path_parts) > 1 and path_parts[1].isdigit():
+                         # Fallback logic depending on route structure
+                        entity_id = int(path_parts[1])
+
+                    metadata = {
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status_code": response.status_code if 'response' in locals() else 500,
+                        "request_body": encrypt_secure_fields(request_body),
+                        "response_body": encrypt_secure_fields(response_body) if 'response_body' in locals() else None,
+                        "query_params": dict(request.query_params),
+                        "headers": dict(request.headers)
+                       
+                    }
+
+                    await create_log_activity(
+                        db=db,
+                        request=request,
+                        action=get_action_from_method(request.method),
+                        entity=entity,
+                        entity_id=entity_id,
+                        status=status,
+                        status_code=response.status_code if 'response' in locals() else 500,
+                        extra_data=metadata,
+                    )
+
+                except Exception as log_error:
+                    logger.error(f"Activity log failed: {log_error}")
 
         return response
 

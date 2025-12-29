@@ -1,7 +1,7 @@
 from fastapi import Request
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-def get_db(request: Request) -> Session:
+def get_db(request: Request) -> AsyncSession:
     """
     Retrieves the database session from the request state.
     
@@ -12,11 +12,11 @@ def get_db(request: Request) -> Session:
         request (Request): The incoming HTTP request.
         
     Returns:
-        Session: The SQLAlchemy database session.
+        AsyncSession: The SQLAlchemy database session.
     """
 
     # Extract the session from request state
-    db: Session = request.state.db
+    db: AsyncSession = request.state.db
 
     # Return active session to router/service
     return db

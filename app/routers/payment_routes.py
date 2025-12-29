@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.schemas.schemas import PaymentCreate, PaymentUpdate
 from app.services.payment_service import PaymentService
@@ -9,10 +9,10 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 
 
 @router.post("")
-def create_payment(
+async def create_payment(
     payload: PaymentCreate,
     user_id: int,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Record a new payment.
@@ -24,15 +24,15 @@ def create_payment(
     Returns:
         Payment: The created payment record.
     """
-    return PaymentService.create_payment(db, payload, user_id)
+    return await PaymentService.create_payment(session, payload, user_id)
 
 
 @router.put("/{payment_id}")
-def update_payment(
+async def update_payment(
     payment_id: int,
     payload: PaymentUpdate,
     user_id: int,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Update a payment status/amount.
@@ -45,5 +45,5 @@ def update_payment(
     Returns:
         dict: Success message.
     """
-    PaymentService.update_payment(db, payment_id, payload, user_id)
+    await PaymentService.update_payment(session, payment_id, payload, user_id)
     return {"message": "Payment updated successfully"}

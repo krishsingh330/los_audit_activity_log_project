@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.services.auth_service import AuthService
 from app.schemas.schemas import UserRegisterSchema, UserLoginSchema
@@ -7,9 +7,9 @@ from app.dependencies import get_db
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register")
-def register_user(
+async def register_user(
     data: UserRegisterSchema,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Register a new user.
@@ -20,7 +20,7 @@ def register_user(
     Returns:
         dict: Success message and user info.
     """
-    user = AuthService.register_user(db, data)
+    user = await AuthService.register_user(session, data)
     return {
         "message": "User registered successfully",
         "user_id": user.id,
@@ -29,9 +29,9 @@ def register_user(
 
 
 @router.post("/login")
-def login_user(
+async def login_user(
     data: UserLoginSchema,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Login a user.
@@ -42,7 +42,7 @@ def login_user(
     Returns:
         dict: Success message and user info.
     """
-    user = AuthService.login_user(db, data)
+    user = await AuthService.login_user(session, data)
     return {
         "message": "Login successful",
         "user_id": user.id,

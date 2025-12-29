@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from app.schemas.schemas import LoanCreateSchema, LoanUpdateSchema
 from app.services import loan_service
 from app.dependencies import get_db
@@ -7,40 +7,40 @@ from app.dependencies import get_db
 router = APIRouter(prefix="/loans", tags=["Loans"])
 
 @router.get("")
-def get_loans(db: Session = Depends(get_db)):
+async def get_loans(session: AsyncSession = Depends(get_db)):
     """
     Fetch all loan applications.
     
     Args:
-        db (Session): Database session.
+        session (AsyncSession): Database session.
         
     Returns:
         list[Loan]: List of all loans.
     """
-    return loan_service.fetch_all_loans(db)
+    return await loan_service.fetch_all_loans(session)
 
 
 @router.get("/{loan_id}")
-def get_loan(loan_id: int, db: Session = Depends(get_db)):
+async def get_loan(loan_id: int, session: AsyncSession = Depends(get_db)):
     """
     Fetch a single loan by ID.
     
     Args:
         loan_id (int): Primary key of the loan.
-        db (Session): Database session.
+        session (AsyncSession): Database session.
         
     Returns:
         Loan: Loan object if found.
     """
-    return loan_service.fetch_loan_by_id(db, loan_id)
+    return await loan_service.fetch_loan_by_id(session, loan_id)
 
 
 @router.post("")
-def create_loan(
+async def create_loan(
     request: Request,
     user_id: int,
     data: LoanCreateSchema,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Create a new loan application.
@@ -52,7 +52,7 @@ def create_loan(
     Returns:
         dict: Confirmation message and created loan details.
     """
-    loan = loan_service.create_loan(db, user_id, data)
+    loan = await loan_service.create_loan(session, user_id, data)
 
     return {
         "message": "Loan created successfully",
@@ -64,12 +64,12 @@ def create_loan(
 
 
 @router.put("/{loan_id}")
-def update_loan(
+async def update_loan(
     request: Request,
     loan_id: int,
     user_id: int,
     payload: LoanUpdateSchema,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Update an existing loan.
@@ -82,7 +82,7 @@ def update_loan(
     Returns:
         dict: Confirmation message.
     """
-    loan = loan_service.update_loan(db, loan_id, user_id, payload)
+    loan = await loan_service.update_loan(session, loan_id, user_id, payload)
 
     return {
         "message": "Loan updated successfully",
@@ -91,11 +91,11 @@ def update_loan(
 
 
 @router.delete("/{loan_id}")
-def delete_loan(
+async def delete_loan(
     request: Request,
     loan_id: int,
     user_id: int,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Delete a loan application.
@@ -107,7 +107,7 @@ def delete_loan(
     Returns:
         dict: Confirmation message.
     """
-    loan_service.delete_loan(db, loan_id, user_id)
+    await loan_service.delete_loan(session, loan_id, user_id)
 
     return {
         "message": "Loan deleted successfully",

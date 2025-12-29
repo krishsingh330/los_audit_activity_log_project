@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.services.activity_service import ActivityService
 from app.dependencies import get_db
@@ -8,13 +8,13 @@ from app.core.logger import logger
 router = APIRouter(prefix="/activity-logs", tags=["Activity Logs"])
 
 @router.get("/")
-def get_activity_logs(
+async def get_activity_logs(
     user_id: int = None,
     entity: str = None,
     entity_id: int = None,
     action: str = None,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Get all activity logs with optional filtering.
@@ -25,14 +25,14 @@ def get_activity_logs(
         entity_id (int, optional): Filter by specific entity ID.
         action (str, optional): Filter by action type.
         limit (int): Limit number of records (default 100).
-        db (Session): Database session.
+        db (AsyncSession): Database session.
         
     Returns:
         list[ActivityLog]: List of system activity logs matching criteria.
     """
     
-    return ActivityService.get_activity_logs(
-        db,
+    return await ActivityService.get_activity_logs(
+        session,
         user_id=user_id,
         entity=entity,
         entity_id=entity_id,

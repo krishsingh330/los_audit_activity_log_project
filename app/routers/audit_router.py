@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends,Request
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from app.services import audit_service
 from app.dependencies import get_db
 
@@ -7,12 +7,12 @@ router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
 
 
 @router.get("/")
-def get_audit_logs(
+async def get_audit_logs(
     table_name: str = None,
     record_id: int = None,
     action: str = None,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    session: AsyncSession = Depends(get_db)
 ):
     """
     Retrieve audit logs with optional filtering.
@@ -25,15 +25,15 @@ def get_audit_logs(
         record_id (int, optional): ID of the specific record.
         action (str, optional): Action type (INSERT, UPDATE, DELETE).
         limit (int): Maximum number of records to return.
-        db (Session): Database session.
+        db (AsyncSession): Database session.
 
     Returns:
         list[AuditLog]: A list of audit logs matching the criteria.
     """
 
     # Call service layer with request parameters
-    logs = audit_service.fetch_audit_logs(
-        db=db,
+    logs = await audit_service.fetch_audit_logs(
+        session=session,
         table_name=table_name,
         record_id=record_id,
         action=action,

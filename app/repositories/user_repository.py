@@ -1,4 +1,5 @@
-from sqlmodel import Session, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import select
 from app.models import User
 
 
@@ -8,33 +9,40 @@ class UserRepository:
     """
 
     @staticmethod
-    def get_by_email(session: Session, email: str):
+    async def get_by_email(session: AsyncSession, email: str):
         """
         Retrieves a user by their email address.
         
         Args:
-            session (Session): Database session.
+            session (AsyncSession): Database session.
             email (str): The email to search for.
             
         Returns:
             User | None: The user object if found, else None.
         """
-        statement = select(User).where(User.email == email)
-        return session.exec(statement).first()
+        try:
+            statement = select(User).where(User.email == email)
+            result = await session.exec(statement)
+            return result.first()
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def create(session: Session, user: User):
+    async def create(session: AsyncSession, user: User):
         """
         Persists a new user record.
         
         Args:
-            session (Session): Database session.
+            session (AsyncSession): Database session.
             user (User): The user object to save.
             
         Returns:
             User: The refreshed user object with ID.
         """
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        return user
+        try:
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except Exception as e:
+            raise e

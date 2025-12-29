@@ -1,4 +1,5 @@
-from sqlmodel import Session, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import select
 from app.models import Payment
 
 
@@ -8,49 +9,60 @@ class PaymentRepository:
     """
 
     @staticmethod
-    def create(session: Session, payment: Payment):
+    async def create(session: AsyncSession, payment: Payment):
         """
         Persists a new payment record.
         
         Args:
-            session (Session): Database session.
+            session (AsyncSession): Database session.
             payment (Payment): The payment object to save.
             
         Returns:
             Payment: The refreshed payment object with ID.
         """
-        session.add(payment)
-        session.commit()
-        session.refresh(payment)
-        return payment
+        try:
+            session.add(payment)
+            await session.commit()
+            await session.refresh(payment)
+            return payment
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def get_by_id(session: Session, payment_id: int):
+    async def get_by_id(session: AsyncSession, payment_id: int):
         """
         Retrieves a payment by its ID.
         
         Args:
-            session (Session): Database session.
+            session (AsyncSession): Database session.
             payment_id (int): The ID of the payment.
             
         Returns:
             Payment | None: The payment object if found, else None.
         """
-        statement = select(Payment).where(Payment.id == payment_id)
-        return session.exec(statement).first()
+        try:
+            statement = select(Payment).where(Payment.id == payment_id)
+            result = await session.exec(statement)
+            return result.first()
+        except Exception as e:
+            raise e
 
     @staticmethod
-    def update(session: Session, payment: Payment):
+    async def update(session: AsyncSession, payment: Payment):
         """
         Updates an existing payment record.
         
         Args:
-            session (Session): Database session.
+            session (AsyncSession): Database session.
             payment (Payment): The modified payment object.
             
         Returns:
             Payment: The updated payment object.
         """
-        session.add(payment)
-        session.commit()
-        return payment
+        try:
+            session.add(payment)
+            await session.commit()
+            await session.refresh(payment)
+            return payment
+        except Exception as e:
+            raise e

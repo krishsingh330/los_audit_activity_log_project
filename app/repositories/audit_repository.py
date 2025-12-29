@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import select
 from app.models import AuditLog
 
 
@@ -8,8 +9,8 @@ class AuditRepository:
     """
 
     @staticmethod
-    def get_audit_logs(
-        db: Session,
+    async def get_audit_logs(
+        session: AsyncSession,
         table_name=None,
         record_id=None,
         action=None,
@@ -22,7 +23,7 @@ class AuditRepository:
         No validation, no request handling, no business rules.
         
         Args:
-            db (Session): Database session.
+            session (AsyncSession): Database session.
             table_name (str, optional): Filter by table name.
             record_id (int, optional): Filter by record ID.
             action (str, optional): Filter by action type (CREATE, UPDATE, DELETE).
@@ -31,34 +32,35 @@ class AuditRepository:
         Returns:
             list[AuditLog]: A list of matching audit log entries.
         """
-        # Initialize base query on AuditLog table
-        # At this stage, query represents:
-        # SELECT * FROM audit_logs
-        query = db.query(AuditLog)
+        try:
+            # Initialize base query on AuditLog table
+            # At this stage, query represents:
+            # SELECT * FROM audit_logs
+            statement = select(AuditLog)
 
-        # Apply table name filter if provided
-        # This restricts logs to a specific database table
-        if table_name:
-            query = query.filter(AuditLog.table_name == table_name)
+            # Apply table name filter if provided
+            # This restricts logs to a specific database table
+            if table_name:
+                statement = statement.where(AuditLog.table_name == table_name)
 
-        # Apply record ID filter if provided
-        # This fetches audit history of a specific row
-        if record_id is not None:
-            query = query.filter(AuditLog.record_id == record_id)
+            # Apply record ID filter if provided
+            # This fetches audit history of a specific row
+            if record_id is not None:
+                statement = statement.where(AuditLog.record_id == record_id)
 
-        # Apply action filter if provided
-        # Action is normalized to uppercase to match DB values
-        if action:
-            query = query.filter(AuditLog.action == action.upper())
+            # Apply action filter if provided
+            # Action is normalized to uppercase to match DB values
+            if action:
+                statement = statement.where(AuditLog.action == action.upper())
 
-        # Sort records by creation time in descending order
-        # Limit is applied to protect database from heavy queries
-        logs = (
-            query
-            .order_by(AuditLog.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+            # Sort records by creation time in descending order
+            # Limit is applied to protect database from heavy queries
+            statement = statement.order_by(AuditLog.created_at.desc()).limit(limit)
 
-        # Return list of audit log records
-        return logs
+            result = await session.exec(statement)
+            
+            # Return list of audit log records
+            return result.all()
+
+        except Exception as e:
+            raise e

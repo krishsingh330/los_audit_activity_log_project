@@ -1,5 +1,5 @@
 from cryptography.fernet import Fernet, InvalidToken
-from app.constants.secure_fields import SecureFields
+from app.constants.secure_fields import SECURE_KEYS
 from app.core.config import get_settings
 from typing import Any
 import logging
@@ -10,7 +10,7 @@ settings = get_settings()
 
 
 # Collect sensitive field names
-SECURE_KEYS = {field.value for field in SecureFields}
+# SECURE_KEYS = {field.value for field in SecureFields}
 
 
 # Load encryption key from ENV (MANDATORY)

@@ -1,8 +1,10 @@
 from enum import Enum
 
 class SecureFields(str, Enum):
-    status = "status"
-    # payment_mode = "payment_mode"
+    # status = "status"
+    payment_mode = "payment_mode"
     password = "password"
     customer_name="customer_name"
     interest_rate="interest_rate"
+
+SECURE_KEYS = {field.value for field in SecureFields}

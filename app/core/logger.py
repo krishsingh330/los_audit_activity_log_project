@@ -1,8 +1,8 @@
+from app.constants.services import ALLOW_SERVICE
 from loguru import logger
 import sys
 import os
-
-
+  
 def setup_logger():
     logger.remove()
 
@@ -41,5 +41,17 @@ def setup_logger():
         diagnose=False,    
         format="{time:YYYY-MM-DD HH:mm:ss} | ERROR | {message}",
     )
+
+    # Service-based Logging 
+    for service in ALLOW_SERVICE:
+        logger.add(
+            f"logs/{service}_{{time:YYYY-MM-DD}}.log",
+            filter=lambda record, s=service: record["extra"].get("service") == s,
+            level="INFO",
+            rotation="00:00",
+            retention="7 days",
+            enqueue=True,
+            format="{time:YYYY-MM-DD HH:mm:ss} | {extra[service]} | {level} | {message}"
+        )
 
     return logger

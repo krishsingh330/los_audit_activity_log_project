@@ -37,12 +37,16 @@ def get_changed_fields_from_history(obj) -> tuple[dict, dict]:
     Returns:
         tuple[dict, dict]: (before_data, after_data) containing only changed fields.
     """
+    print("🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎🥎",model_to_dict(obj),obj)
     insp = sql_inspect(obj)
     before_data = {}
     after_data = {}
-
+    print("✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅",insp,insp.mapper.column_attrs)
     for attr in insp.mapper.column_attrs:
+        
+        print("🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞🌞",attr)
         hist = insp.attrs[attr.key].history
+        print("🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎🔎",hist)
 
         if hist.has_changes():
             # get old value (deleted)

@@ -8,8 +8,9 @@ from app.database import engine
 from app.utils.activity_logger import create_log_activity
 from app.core.logger import logger
 from app.utils.enum_security import encrypt_secure_fields
-
+from app.constants.excluded_routes import EXCLUDED_PREFIXES
 import json
+
 
 
 def get_action_from_method(method: str) -> str:
@@ -34,7 +35,6 @@ def get_action_from_method(method: str) -> str:
     return "UNKNOWN"
 
 
-from app.constants.excluded_routes import EXCLUDED_PREFIXES
 
 class ActivityLoggerMiddleware(BaseHTTPMiddleware):
     """
@@ -132,8 +132,10 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
                     path_parts = request.url.path.strip("/").split("/")
                     entity = path_parts[2] if len(path_parts) > 2 else None
                     entity_id = None
+
                     if len(path_parts) > 3 and path_parts[3].isdigit():
                         entity_id = int(path_parts[3])
+                        
                     elif len(path_parts) > 1 and path_parts[1].isdigit():
                          # Fallback logic depending on route structure
                         entity_id = int(path_parts[1])

@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings,SettingsConfigDict
 from functools import lru_cache
 import os
 from pathlib import Path
@@ -16,14 +16,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str 
     DEBUG: bool = False
     ENUM_ENCRYPTION_KEY: str = None
-
-    class Config:
-        """
-        Pydantic settings configuration.
-        Reads variables from a .env file.
-        """
-        env_file = BASE_DIR/".env"
-        env_file_encoding = "utf-8"
+    
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
+    
 
 @lru_cache
 def get_settings() -> Settings:

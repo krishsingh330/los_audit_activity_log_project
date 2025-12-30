@@ -34,7 +34,7 @@ def setup_logger():
     logger.add(
         "logs/error_{time:YYYY-MM-DD}.log",
         rotation="00:00",
-        retention="14 days",
+        retention="7 days",
         level="ERROR",
         enqueue=True,
         backtrace=False,

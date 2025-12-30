@@ -12,8 +12,7 @@ class Settings(BaseSettings):
         DATABASE_URL (str): The database connection string.
         DEBUG (bool): Debug mode flag.
     """
-    # Default database connection string (should be overridden by env vars in production)
-    # Default database connection string (should be overridden by env vars in production)
+    # Default database connection string
     DATABASE_URL: str 
     DEBUG: bool = False
     ENUM_ENCRYPTION_KEY: str = None
